@@ -37,14 +37,13 @@ class DateTimeInjector(AbstractInjector):
   def __gen_times(self, data):
     data = dictify(data)
     prev_step = 0
-    prev_time = self.__begin
+    current = self.__begin
     for randomizer in self.__randomizers:
       if randomizer.step > prev_step:
-        current = randomizer.next(prev_time)
-        prev_time = current
+        current = randomizer.next(current)
         prev_step = randomizer.step
       else:
-        current = randomizer.next(prev_time)
+        current = randomizer.next(current)
       if randomizer.format is None:
         data[randomizer.name] = current
       else:
