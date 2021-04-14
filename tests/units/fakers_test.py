@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import random
+import random, re
 import unittest
 import os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)) + '/../../src')
 
-from modelmock.fakers import generate_agents, generate_contracts, generate_purchases
+from modelmock.fakers import generate_agents, generate_contracts, generate_purchases, CandidatesFaker
 
 
 class generate_agents_test(unittest.TestCase):
@@ -52,14 +52,14 @@ class generate_purchases_test(unittest.TestCase):
         self.assertEqual(len(list(_record)), 50)
 
     def test_generate_purchases_with_value_of_totalcontracts_less_than_double_value_of_totalagents(self):
-        errmsgs = 'variance must be greater than 0'
+        errmsg = 'variance must be greater than 0'
         check_num = 0
 
         for i in range(5):
             check_num += 1
-            with self.assertRaisesRegex(Exception) as context:
+            with self.assertRaises(Exception) as context:
                 generate_purchases(10, random.randint(0, 19), 100, 10000000)
-                self.assertEqual(errmsgs, context.exception)
+                self.assertEqual(errmsg, context.exception)
 
         self.assertEqual(check_num, 5)
 
@@ -98,7 +98,6 @@ class generate_contracts_test(unittest.TestCase):
       for i in range(5):
         check_num += 1
         with self.assertRaises(errclass(num)) as context:
-          print(errmsgs(num))
           generate_contracts(8, num, 1000)
           self.assertEqual(errmsgs(num), context.exception)
       self.assertEqual(check_num, 5)
@@ -124,3 +123,85 @@ class generate_contracts_test(unittest.TestCase):
         _check = False if record[field] > 3 else True
 
     self.assertEqual(True,_check)
+
+class candidates_class_test(unittest.TestCase):
+
+ def setUp(self):
+    pass
+
+ def test_defaul_ok(self):
+    _records = list(CandidatesFaker(100).records)
+    self.assertEqual(len(_records), 100)
+
+ def test_candidates_class_with_total_candidates_is_undefined(self):
+    errmsg = '[total] must be a positive integer'
+
+    with self.assertRaises(Exception) as context:
+      CandidatesFaker(None)
+      self.assertEqual(errmsg, context.exception)
+
+ def test_value_gender_of_candidates(self):
+    _records = CandidatesFaker(100).records
+    check = True
+
+    for _record in _records:
+      check = False if _record['gender'] != 'F' and _record['gender'] != 'M' else check
+
+    self.assertEqual(check, True)
+
+ def test_regex_email_of_candidates(self):
+    _regex = '^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$'
+    _records = CandidatesFaker(10).records
+    _num = 0
+
+    for _record in _records:
+      _num += 1 if re.search(_regex, _record['email']) else _num
+
+    self.assertEqual(_num, 10)
+
+ def test_domain_email_of_candidates(self):
+    _domains = ['icloud.com','gmail.com', 'yahoo.com', 'hotmail.com']
+    _records = CandidatesFaker(10).records
+    _num = 0
+
+    for _record in _records:
+      if _domains[0] in _record['email'] or \
+         _domains[1] in _record['email'] or \
+         _domains[2] in _record['email'] or \
+         _domains[3] in _record['email']:
+          _num += 1
+
+    self.assertEqual(_num, 10)
+
+ def test_numbers_phone_of_candidates(self):
+     _seeds = ['en', 'en_US', 'vi_VN']
+     _regex = lambda x: '^(\\+843|\\+845|\\+847|\\+848|\\+849|03|05|07|08|09)\\d{8}' \
+                         if x == 'vi_VN' else \
+                         '^(\\+1|001)\\d{8}'
+
+     # _prephone = [
+     #     ['+1', '001'],
+     #     ['+1', '001'],
+     #     ['+843', '+845', '+847', '+848', '+849', '03', '05', '07', '08', '09']
+     # ]
+
+
+     for _seed in _seeds:
+         _records = list(CandidatesFaker(10,locale=_seed).records)
+         _num = 0
+
+         for i in range(len(_records)):
+             _num += 1 if re.search(_regex(_seed),_records[i]['phone']) else _num
+
+         self.assertEqual(_num, 10)
+
+ # checking first name and last name have to diff
+ def test_full_name_of_candidates(self):
+    _records = CandidatesFaker(10).records
+    _num = 0
+
+    for _record in _records:
+        _name = _record['fullname'].split()
+        _num += 1 if not _name[0] == _name[1] else _num
+
+    self.assertEqual(_num, 10)
